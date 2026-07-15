@@ -69,3 +69,19 @@ src/
 - `GET /api/users/search` — Search users
 - `POST /api/communities` — Create community
 - ...and 50+ more endpoints
+
+## Deploy to Render
+
+1. Push this repo to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint**
+3. Connect your GitHub repo and select this `backend/` directory
+4. Render reads `render.yaml` and creates:
+   - **Web Service** (Node.js)
+   - **PostgreSQL** database (free tier)
+   - **Redis** instance (free tier)
+5. Set the remaining env vars in the Render dashboard:
+   - `FRONTEND_URL` → your frontend Render URL (e.g. `https://memogram-frontend.onrender.com`)
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+6. Deploy — Render runs `npm install` then `node src/index.js`
+
+Your backend URL will be something like `https://memogram-backend.onrender.com`
