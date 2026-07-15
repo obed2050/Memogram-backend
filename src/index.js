@@ -22,7 +22,11 @@ app.set('io', io);
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    process.env.FRONTEND_URL,
+    'https://memogram-frontend.onrender.com',
+    'http://localhost:5173',
+  ].filter(Boolean),
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
