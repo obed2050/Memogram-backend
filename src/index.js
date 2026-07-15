@@ -18,15 +18,25 @@ const httpServer = createServer(app);
 const io = initializeSocket(httpServer);
 app.set('io', io);
 
+const allowedOrigins = [
+  'https://memogram-frontend.onrender.com',
+  'http://localhost:5173',
+];
+
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(morgan('dev'));
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL,
-    'https://memogram-frontend.onrender.com',
-    'http://localhost:5173',
-  ].filter(Boolean),
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.FRONTEND_URL === origin) {
+      callback(null, origin || allowedOrigins[0]);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
