@@ -30,6 +30,8 @@ const recommendationRoutes = require('./recommendation.routes');
 const analyticsRoutes = require('./analytics.routes');
 const callRoutes = require('./call.routes');
 
+console.log('✅ [Routes] Loading route modules...');
+
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/posts', postRoutes);
@@ -60,5 +62,7 @@ router.use('/moderation', moderationRoutes);
 router.use('/recommendations', recommendationRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/calls', callRoutes);
+
+console.log('✅ [Routes] All 30 route modules loaded successfully');
 
 module.exports = router;

@@ -90,6 +90,72 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 // ======================
+// Debug: Print all registered routes
+// ======================
+
+function printAllRegisteredRoutes(app) {
+  console.log('\n========================================');
+  console.log('   REGISTERED EXPRESS ROUTES');
+  console.log('========================================');
+
+  const output = [];
+
+  function walkStack(stack, prefix) {
+    stack.forEach((layer) => {
+      if (layer.route) {
+        const methods = Object.keys(layer.route.methods).join(',').toUpperCase();
+        output.push(`  ${methods.padEnd(8)} ${prefix}${layer.route.path}`);
+      } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+        const reStr = layer.regexp.toString();
+        let mountPath = prefix;
+        const match = reStr.match(/\/\^\\?\/(.*?)\\?\//);
+        if (match) {
+          mountPath = prefix + '/' + match[1].replace(/\\\//g, '/');
+        }
+        walkStack(layer.handle.stack, mountPath);
+      }
+    });
+  }
+
+  if (app._router && app._router.stack) {
+    walkStack(app._router.stack, '');
+  }
+
+  output.forEach((r) => console.log(r));
+  console.log('========================================\n');
+}
+
+// Debug endpoint - returns all registered routes as JSON
+app.get('/api/debug/routes', (req, res) => {
+  const routes = [];
+
+  function walkStack(stack, prefix) {
+    stack.forEach((layer) => {
+      if (layer.route) {
+        const methods = Object.keys(layer.route.methods);
+        methods.forEach((m) => {
+          routes.push({ method: m.toUpperCase(), path: prefix + layer.route.path });
+        });
+      } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+        const reStr = layer.regexp.toString();
+        let mountPath = prefix;
+        const match = reStr.match(/\/\^\\?\/(.*?)\\?\//);
+        if (match) {
+          mountPath = prefix + '/' + match[1].replace(/\\\//g, '/');
+        }
+        walkStack(layer.handle.stack, mountPath);
+      }
+    });
+  }
+
+  if (app._router && app._router.stack) {
+    walkStack(app._router.stack, '');
+  }
+
+  res.json({ totalRoutes: routes.length, routes });
+});
+
+// ======================
 // Start Server
 // ======================
 
@@ -117,6 +183,7 @@ const start = async () => {
 
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      printAllRegisteredRoutes(app);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
