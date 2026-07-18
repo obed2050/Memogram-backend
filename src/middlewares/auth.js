@@ -7,7 +7,7 @@ const USER_CACHE_TTL = 120;
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '') || req.cookies?.token;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
@@ -58,7 +58,7 @@ const auth = async (req, res, next) => {
 
 const optionalAuth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '') || req.cookies?.token;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (token) {
       if (!(await isTokenBlacklisted(token))) {

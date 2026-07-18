@@ -48,7 +48,6 @@ const initializeSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
       origin: allowedSocketOrigins,
-      credentials: true,
       methods: ['GET', 'POST'],
     },
   });

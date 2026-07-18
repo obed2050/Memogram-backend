@@ -30,13 +30,6 @@ exports.register = async (req, res) => {
 
     AnalyticsEvent.create({ eventType: 'user_visit', userId: user.id, metadata: { action: 'register' } }).catch(() => {});
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-
     return sendSuccess(res, { user: user.toSafeObject(), token }, 'Registration successful', 201);
   } catch (error) {
     return sendError(res, error.message, 500);
@@ -61,13 +54,6 @@ exports.login = async (req, res) => {
 
     AnalyticsEvent.create({ eventType: 'user_visit', userId: user.id, metadata: { action: 'login' } }).catch(() => {});
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-
     return sendSuccess(res, { user: user.toSafeObject(), token }, 'Login successful');
   } catch (error) {
     return sendError(res, error.message, 500);
@@ -76,7 +62,7 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '') || req.cookies?.token;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -85,7 +71,6 @@ exports.logout = async (req, res) => {
         await cacheDel(`user:${decoded.id}`);
       } catch {}
     }
-    res.clearCookie('token');
     return sendSuccess(res, null, 'Logged out successfully');
   } catch (error) {
     return sendError(res, error.message, 500);
