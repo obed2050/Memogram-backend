@@ -35,11 +35,27 @@ const sanitize = (text) => {
   return text.replace(/<[^>]*>/g, '').trim();
 };
 
+const allowedSocketOrigins = [
+  'https://memogram-frontend.onrender.com',
+  'http://localhost:5173',
+].filter(Boolean);
+
+if (process.env.FRONTEND_URL && !allowedSocketOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedSocketOrigins.push(process.env.FRONTEND_URL);
+}
+
 const initializeSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'https://memogram-frontend.onrender.com',
+      origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedSocketOrigins.includes(origin)) {
+          return callback(null, origin);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
+      methods: ['GET', 'POST'],
     },
   });
   ioInstance = io;

@@ -21,7 +21,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 30d
       - key: FRONTEND_URL
-        sync: false
+        value: https://memogram-frontend.onrender.com
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

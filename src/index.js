@@ -3,7 +3,9 @@ const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 const { createServer } = require('http');
+
 const { initializeSocket } = require('./socket');
 const { sequelize } = require('./models');
 const { redis } = require('./config/redis');
@@ -20,32 +22,44 @@ app.set('io', io);
 const allowedOrigins = [
   'https://memogram-frontend.onrender.com',
   'http://localhost:5173',
-];
+].filter(Boolean);
 
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+// ======================
 // Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: false,
-}));
-app.use(morgan('dev'));
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (!origin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
-  }
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+// ======================
 
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+  })
+);
+
+app.use(morgan('dev'));
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, origin);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
@@ -56,9 +70,10 @@ app.use('/uploads', express.static('uploads'));
 // Routes
 app.use('/api', routes);
 
-// Health check
+// Health Check
 app.get('/api/health', async (req, res) => {
-  const redisStatus = redis.status === 'ready' ? 'connected' : 'disconnected';
+  const redisStatus = redis.isOpen ? 'connected' : 'disconnected';
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -66,52 +81,70 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Error handling
+// Error Handling
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+// ======================
+// Start Server
+// ======================
+
 const start = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connected.');
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('Models synchronized.');
+    console.log('✅ Database connected.');
+
+    await sequelize.sync({
+      alter: process.env.NODE_ENV === 'development',
+    });
+
+    console.log('✅ Models synchronized.');
 
     try {
       await redis.connect();
-      console.log('Redis connected.');
+      console.log('✅ Redis connected.');
     } catch (err) {
       if (err.message.includes('ECONNREFUSED')) {
-        console.warn('Redis not available — running without cache');
+        console.warn('⚠️ Redis not available — running without cache');
       } else {
-        console.warn('Redis connection failed:', err.message);
+        console.warn('⚠️ Redis connection failed:', err.message);
       }
     }
 
     httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };
 
-// Graceful shutdown
+// ======================
+// Graceful Shutdown
+// ======================
+
 const shutdown = async () => {
-  console.log('\nShutting down...');
+  console.log('\n🛑 Shutting down...');
+
   try {
-    if (redis.status === 'ready') {
+    if (redis.isOpen) {
       await redis.quit();
-      console.log('Redis disconnected.');
+      console.log('✅ Redis disconnected.');
     }
-  } catch {}
+  } catch (err) {
+    console.error(err);
+  }
+
   try {
     await sequelize.close();
-    console.log('Database disconnected.');
-  } catch {}
+    console.log('✅ Database disconnected.');
+  } catch (err) {
+    console.error(err);
+  }
+
   process.exit(0);
 };
 
