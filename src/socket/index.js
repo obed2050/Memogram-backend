@@ -47,13 +47,7 @@ if (process.env.FRONTEND_URL && !allowedSocketOrigins.includes(process.env.FRONT
 const initializeSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedSocketOrigins.includes(origin)) {
-          return callback(null, origin);
-        }
-        return callback(new Error('Not allowed by CORS'));
-      },
+      origin: allowedSocketOrigins,
       credentials: true,
       methods: ['GET', 'POST'],
     },
