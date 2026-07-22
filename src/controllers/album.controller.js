@@ -13,10 +13,7 @@ const SORT_MAP = {
 
 const enrichAlbum = async (album, userId) => {
   const data = album.toJSON();
-  if (userId) {
-    const liked = await Like.findOne({ where: { userId, postId: album.userId } });
-    data.isOwner = album.userId === userId;
-  }
+  data.isOwner = userId ? album.userId === userId : false;
   return data;
 };
 

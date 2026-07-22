@@ -32,7 +32,7 @@ router.delete('/:eventId/comments/:commentId', auth, deleteComment);
 
 router.get('/:eventId/comments/:commentId/replies', optionalAuth, getReplies);
 router.post('/:eventId/comments/:commentId/replies', auth, createCommentValidation, validate, createReply);
-router.delete('/replies/:replyId', auth, deleteReply);
+router.delete('/:eventId/comments/:commentId/replies/:replyId', auth, deleteReply);
 
 router.get('/:eventId/memories', optionalAuth, getLinkedMemories);
 router.post('/:eventId/memories/:memoryId', auth, linkMemory);

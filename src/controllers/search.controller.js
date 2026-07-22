@@ -1,6 +1,6 @@
 const { Op, fn, col, literal } = require('sequelize');
 const {
-  sequelize, User, School, SchoolHistory, Community, CommunityEvent,
+  sequelize, User, School, Community, CommunityEvent,
   Club, ClubMember, Post, Follow, Like,
 } = require('../models');
 const { sendSuccess, sendError } = require('../utils/response');
@@ -87,7 +87,7 @@ async function searchUsers(query, offset, limit, userId) {
   });
 
   const userIds = rows.map((u) => u.id);
-  const [followerCounts, followingRows] = await Promise.all>(
+  const [followerCounts, followingRows] = await Promise.all(
     userId ? [
       Follow.findAll({
         attributes: ['followingId', [fn('COUNT', col('followerId')), 'count']],
@@ -116,19 +116,22 @@ async function searchUsers(query, offset, limit, userId) {
 }
 
 async function searchSchools(query, offset, limit) {
-  const { count, rows } = await School.findAndCountAll({
-    where: { name: { [Op.iLike]: `%${query}%` } },
-    attributes: {
-      include: [[fn('COUNT', col('students.id')), 'memberCount']],
-    },
-    include: [{ model: SchoolHistory, as: 'students', attributes: [] }],
-    group: ['School.id'],
-    limit,
-    offset,
-    subQuery: false,
-  });
+  const where = { name: { [Op.iLike]: `%${query}%` } };
 
-  return { items: rows, total: count };
+  const [schools, total] = await Promise.all([
+    School.findAll({
+      where,
+      attributes: {
+        include: [[literal(`(SELECT COUNT(*) FROM "SchoolHistories" WHERE "SchoolHistories"."schoolId" = "School"."id")`), 'memberCount']],
+      },
+      limit,
+      offset,
+      subQuery: false,
+    }),
+    School.count({ where }),
+  ]);
+
+  return { items: schools, total };
 }
 
 async function searchCommunities(query, offset, limit) {

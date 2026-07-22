@@ -1,6 +1,8 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = process.env.DATABASE_URL
+const useUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.trim().length > 0;
+
+const sequelize = useUrl
   ? new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       logging: process.env.NODE_ENV === 'development' ? console.log : false,
@@ -23,7 +25,7 @@ const sequelize = process.env.DATABASE_URL
       process.env.DB_PASSWORD,
       {
         host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
+        port: parseInt(process.env.DB_PORT || '5432'),
         dialect: 'postgres',
         logging: process.env.NODE_ENV === 'development' ? console.log : false,
         pool: {

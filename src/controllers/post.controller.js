@@ -84,8 +84,8 @@ exports.createPost = async (req, res) => {
 
 exports.getFeed = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const cacheKey = `feed:${req.userId}:${page}:${limit}`;
+    const { page = 1, limit = 20, type } = req.query;
+    const cacheKey = `feed:${req.userId}:${page}:${limit}:${type || 'all'}`;
 
     const cached = await cacheGet(cacheKey);
     if (cached) return sendSuccess(res, cached);
@@ -107,6 +107,10 @@ exports.getFeed = async (req, res) => {
       ],
       visibility: { [Op.ne]: 'private' },
     };
+
+    if (type && ['post', 'memory', 'reel'].includes(type)) {
+      where.type = type;
+    }
 
     const { count, rows: posts } = await Post.findAndCountAll({
       where,

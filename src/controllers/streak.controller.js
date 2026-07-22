@@ -97,4 +97,4 @@ exports.getLeaderboard = async (req, res) => {
   }
 };
 
-module.exports.updateStreak = updateStreak;
+exports.updateStreak = updateStreak;

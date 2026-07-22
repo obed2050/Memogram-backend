@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config({ path: '.env.local', override: true });
 const express = require('express');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -101,6 +102,7 @@ function printAllRegisteredRoutes(app) {
   const output = [];
 
   function walkStack(stack, prefix) {
+    if (!stack) return;
     stack.forEach((layer) => {
       if (layer.route) {
         const methods = Object.keys(layer.route.methods).join(',').toUpperCase();
@@ -117,11 +119,17 @@ function printAllRegisteredRoutes(app) {
     });
   }
 
-  if (app._router && app._router.stack) {
-    walkStack(app._router.stack, '');
-  }
+  try {
+    if (app._router && app._router.stack) {
+      walkStack(app._router.stack, '');
+    }
+  } catch {}
 
-  output.forEach((r) => console.log(r));
+  if (output.length === 0) {
+    console.log('  (Express 5 — route introspection not available)');
+  } else {
+    output.forEach((r) => console.log(r));
+  }
   console.log('========================================\n');
 }
 
@@ -130,6 +138,7 @@ app.get('/api/debug/routes', (req, res) => {
   const routes = [];
 
   function walkStack(stack, prefix) {
+    if (!stack) return;
     stack.forEach((layer) => {
       if (layer.route) {
         const methods = Object.keys(layer.route.methods);
@@ -148,11 +157,13 @@ app.get('/api/debug/routes', (req, res) => {
     });
   }
 
-  if (app._router && app._router.stack) {
-    walkStack(app._router.stack, '');
-  }
+  try {
+    if (app._router && app._router.stack) {
+      walkStack(app._router.stack, '');
+    }
+  } catch {}
 
-  res.json({ totalRoutes: routes.length, routes });
+  res.json({ totalRoutes: routes.length, routes, note: routes.length === 0 ? 'Express 5 — route introspection not available' : undefined });
 });
 
 // ======================

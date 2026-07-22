@@ -26,6 +26,6 @@ router.post('/:id/comments', auth, createCommentValidation, validate, createComm
 router.delete('/:id/comments/:commentId', auth, deleteComment);
 router.get('/:id/comments/:commentId/replies', auth, getReplies);
 router.post('/:id/comments/:commentId/replies', auth, createCommentValidation, validate, createReply);
-router.delete('/replies/:replyId', auth, deleteReply);
+router.delete('/:id/comments/:commentId/replies/:replyId', auth, deleteReply);
 
 module.exports = router;

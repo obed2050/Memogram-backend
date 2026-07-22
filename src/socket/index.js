@@ -35,6 +35,23 @@ const sanitize = (text) => {
   return text.replace(/<[^>]*>/g, '').trim();
 };
 
+const computeTotalUnread = async (userId) => {
+  const participations = await ConversationParticipant.findAll({
+    where: { userId },
+    attributes: ['conversationId'],
+  });
+  if (participations.length === 0) return 0;
+  const convIds = participations.map((p) => p.conversationId);
+  const total = await Message.count({
+    where: {
+      conversationId: { [Op.in]: convIds },
+      senderId: { [Op.ne]: userId },
+      isRead: false,
+    },
+  });
+  return total;
+};
+
 const allowedSocketOrigins = [
   'https://memogram-frontend.onrender.com',
   'http://localhost:5173',
@@ -75,6 +92,10 @@ const initializeSocket = (httpServer) => {
     await User.update({ isOnline: true }, { where: { id: socket.userId } });
     await redisService.setOnline(socket.userId);
     io.emit('user_online', { userId: socket.userId });
+
+    // Send initial unread count on connect
+    const initialUnread = await computeTotalUnread(socket.userId);
+    socket.emit('unread_count', initialUnread);
 
     const participations = await ConversationParticipant.findAll({
       where: { userId: socket.userId },
@@ -163,6 +184,9 @@ const initializeSocket = (httpServer) => {
               conversationId,
               messagePreview: sanitizedContent?.slice(0, 100) || '',
             });
+            // Emit updated unread count to the recipient
+            const recipientUnread = await computeTotalUnread(p.userId);
+            io.to(recipientSocketId).emit('unread_count', recipientUnread);
           } else {
             await redisService.queueNotification(p.userId, {
               type: 'message',
@@ -347,6 +371,10 @@ const initializeSocket = (httpServer) => {
           userId: socket.userId,
         });
         socket.emit('conversation_unread_reset', { conversationId });
+
+        // Emit updated total unread count to the user
+        const totalUnread = await computeTotalUnread(socket.userId);
+        socket.emit('unread_count', totalUnread);
       } catch (error) { /* silent */ }
     });
 

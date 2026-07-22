@@ -39,6 +39,7 @@ exports.markAsRead = async (req, res) => {
 exports.markAllAsRead = async (req, res) => {
   try {
     await Notification.update({ isRead: true }, { where: { userId: req.userId, isRead: false } });
+    await clearNotificationCount(req.userId);
     return sendSuccess(res, null, 'All notifications marked as read');
   } catch (error) {
     return sendError(res, error.message, 500);
@@ -53,16 +54,6 @@ exports.getUnreadCount = async (req, res) => {
     });
     const count = Math.max(redisCount, dbCount);
     return sendSuccess(res, { count });
-  } catch (error) {
-    return sendError(res, error.message, 500);
-  }
-};
-
-exports.markAllAsRead = async (req, res) => {
-  try {
-    await Notification.update({ isRead: true }, { where: { userId: req.userId, isRead: false } });
-    await clearNotificationCount(req.userId);
-    return sendSuccess(res, null, 'All notifications marked as read');
   } catch (error) {
     return sendError(res, error.message, 500);
   }
